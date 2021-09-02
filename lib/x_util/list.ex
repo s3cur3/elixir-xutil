@@ -45,4 +45,16 @@ defmodule XUtil.List do
   end
 
   def slide(enumerable, _, _, _), do: Enum.to_list(enumerable)
+
+  @doc """
+  Moves a single element from its current index to a target index.
+
+    iex> XUtil.List.slide_one([0, 1, 2, 3, 4, 5, 6], 2, 4)
+    [0, 1, 3, 4, 2, 5, 6]
+    iex> XUtil.List.slide_one([0, 1, 2, 3, 4, 5, 6], 5, 1)
+    [0, 5, 1, 2, 3, 4, 6]
+  """
+  def slide_one(enumerable, idx_to_move, insertion_idx) do
+    slide(enumerable, idx_to_move, idx_to_move, insertion_idx)
+  end
 end
