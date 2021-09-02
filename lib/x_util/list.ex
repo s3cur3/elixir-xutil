@@ -9,9 +9,9 @@ defmodule XUtil.List do
   [`first`, `last`] such that the item at index `middle` becomes first, and the item at index
   `middle` - 1 becomes the last.
 
-    iex(1)> XUtil.List.rotate([0, 1, 2, 3, 4, 5, 6], 1, 3, 5)
+    iex> XUtil.List.rotate([0, 1, 2, 3, 4, 5, 6], 1, 3, 5)
     [0, 3, 4, 5, 1, 2, 6]
-    iex(1)> XUtil.List.rotate([0, 1, 2, 3, 4, 5, 6], 0, 1, 7)
+    iex> XUtil.List.rotate([0, 1, 2, 3, 4, 5, 6], 0, 1, 7)
     [1, 2, 3, 4, 5, 6, 0]
   """
   def rotate(enumerable, start, middle, last) do
@@ -26,6 +26,11 @@ defmodule XUtil.List do
   @doc """
   Pulls out the elements in the range [`range_start_idx`, `range_end_idx`] and inserts them at
   `insertion_idx`, returning the reassembled enumerable as a list.
+
+    iex> XUtil.List.slide([0, 1, 2, 3, 4, 5, 6], 1, 3, 5)
+    [0, 4, 5, 1, 2, 3, 6]
+    iex> XUtil.List.slide([0, 1, 2, 3, 4, 5, 6], 2, 4, 1)
+    [0, 2, 3, 4, 1, 5, 6]
   """
   def slide(enumerable, range_start_idx, range_end_idx, insertion_idx)
 
@@ -36,7 +41,7 @@ defmodule XUtil.List do
 
   def slide(enumerable, range_start_idx, range_end_idx, insertion_idx)
       when insertion_idx > range_start_idx do
-    rotate(enumerable, range_start_idx, range_end_idx, insertion_idx)
+    rotate(enumerable, range_start_idx, range_end_idx + 1, insertion_idx)
   end
 
   def slide(enumerable, _, _, _), do: Enum.to_list(enumerable)
