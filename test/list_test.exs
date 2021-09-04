@@ -38,5 +38,11 @@ defmodule XUtil.ListTest do
 
       assert XUtil.List.rotate([:a, :b, :c, :d, :e, :f], 4..5, 0) == [:e, :f, :a, :b, :c, :d]
     end
+
+    test "raises when the insertion point is inside the range" do
+      assert_raise RuntimeError, fn ->
+        XUtil.List.rotate(0..20, 10..18, 14)
+      end
+    end
   end
 end

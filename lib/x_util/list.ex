@@ -20,9 +20,9 @@ defmodule XUtil.List do
   # TODO: Support negative indices/ranges
   # TODO: Make it clear the semantics of the range are based on the semantics of Enum.slice/2
   #       and the semantics of "end" on insert_at
-  # TODO: Support ranges with a :step (1.12+)
+  # TODO: Support ranges with a :step (1.12+)?
   def rotate(enumerable, %Range{first: first, last: last}, insertion_index)
-      when first != insertion_index do
+      when insertion_index < first or insertion_index > last do
     if insertion_index < first do
       rotate_contiguous(enumerable, insertion_index, first, last)
     else
@@ -30,8 +30,13 @@ defmodule XUtil.List do
     end
   end
 
-  def rotate(enumerable, _range, _insertion_index) do
+  def rotate(enumerable, %Range{first: insertion_index}, insertion_index) do
     Enum.to_list(enumerable)
+  end
+
+  def rotate(_, %Range{first: first, last: last}, insertion_index)
+      when insertion_index > first and insertion_index <= last do
+    raise "Insertion index for rotate must be outside the range being moved"
   end
 
   # This has the semantics of C++'s std::rotate
