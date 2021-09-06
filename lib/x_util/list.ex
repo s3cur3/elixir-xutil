@@ -17,16 +17,20 @@ defmodule XUtil.List do
     iex> XUtil.List.rotate([0, 1, 2, 3, 4, 5, 6], 2..4, 1)
     [0, 2, 3, 4, 1, 5, 6]
   """
+  def rotate(%Range{} = enumerable, range, insertion_index) do
+    rotate(Enum.to_list(enumerable), range, insertion_index)
+  end
+
   # TODO: Support negative indices/ranges
   # TODO: Make it clear the semantics of the range are based on the semantics of Enum.slice/2
   #       and the semantics of "end" on insert_at
-  # TODO: Support ranges with a :step (1.12+)?
-  def rotate(enumerable, %Range{first: first, last: last}, insertion_index)
+  # TODO: Support ranges with a :step (1.12+)? Enum.slice/2 raises an error, so maybe not
+  def rotate(enumerable, first..last, insertion_index)
       when insertion_index < first or insertion_index > last do
-    if insertion_index < first do
-      rotate_contiguous(enumerable, insertion_index, first, last)
-    else
-      rotate_contiguous(enumerable, first, last + 1, insertion_index)
+    cond do
+      insertion_index <= first -> find_start(enumerable, insertion_index, first, last)
+      insertion_index > last -> find_start(enumerable, first, last + 1, insertion_index)
+      true -> raise "Insertion index for rotate must be outside the range being moved"
     end
   end
 
@@ -34,23 +38,9 @@ defmodule XUtil.List do
     Enum.to_list(enumerable)
   end
 
-  def rotate(_, %Range{first: first, last: last}, insertion_index)
-      when insertion_index > first and insertion_index <= last do
-    raise "Insertion index for rotate must be outside the range being moved"
-  end
-
-  # This has the semantics of C++'s std::rotate
-  # Given three indices (start, middle, and last, inclusive), this pulls out the elements
-  # in the range [`middle`, `last`] and inserts them at index `start`. This reorders the range
-  # [`first`, `last`] such that the item at index `middle` becomes first, and the item at index
-  # `middle` - 1 becomes the last.
-  defp rotate_contiguous(enumerable, start, middle, last) do
-    {unchanged_start, after_insertion_pt} = Enum.split(enumerable, start)
-    # to_rotate contains just the elements in the range [start, last]
-    {to_rotate, unchanged_end} = Enum.split(after_insertion_pt, last - start + 1)
-    {new_end_of_rotated_range, new_start_of_rotated_range} = Enum.split(to_rotate, middle - start)
-
-    unchanged_start ++ new_start_of_rotated_range ++ new_end_of_rotated_range ++ unchanged_end
+  def rotate(_, %Range{first: first, last: last}, insertion_index) do
+    raise "Insertion index for rotate must be outside the range being moved " <>
+          "(tried to insert #{first}..#{last} at #{insertion_index})"
   end
 
   @doc """
@@ -63,5 +53,41 @@ defmodule XUtil.List do
   """
   def rotate_one(enumerable, idx_to_move, insertion_idx) do
     rotate(enumerable, idx_to_move..idx_to_move, insertion_idx)
+  end
+
+  # If end is after middle, we can use a non-tail recursive to start traverse until we find the start:
+  # This guarantees the list is only copied once (plus one additional copy for the start..middle slice).
+  # A similar approach can be devised if the end is before the start.
+  defp find_start([h | t], start, middle, last)
+       when start > 0 and start <= middle and middle <= last do
+    [h | find_start(t, start - 1, middle - 1, last - 1)]
+  end
+
+  defp find_start(list, 0, middle, last), do: accumulate_start_middle(list, middle, last, [])
+
+  defp accumulate_start_middle([h | t], middle, last, acc) when middle > 0 do
+    accumulate_start_middle(t, middle - 1, last - 1, [h | acc])
+  end
+
+  defp accumulate_start_middle(list, 0, last, start_to_middle) do
+    {rotated_range, tail} = accumulate_middle_last(list, last + 1, [])
+    rotated_range ++ :lists.reverse(start_to_middle, tail)
+  end
+
+  # You asked for a middle index off the end of the list... you get what we've got
+  defp accumulate_start_middle([], _, _, acc) do
+    :lists.reverse(acc)
+  end
+
+  defp accumulate_middle_last([h | t], last, acc) when last > 0 do
+    accumulate_middle_last(t, last - 1, [h | acc])
+  end
+
+  defp accumulate_middle_last(rest, 0, acc) do
+    {:lists.reverse(acc), rest}
+  end
+
+  defp accumulate_middle_last([], _, acc) do
+    {:lists.reverse(acc), []}
   end
 end
