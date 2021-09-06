@@ -4,21 +4,36 @@ defmodule XUtil.List do
   """
 
   @doc """
-  Given a range of list indices, pulls out the elements in that range and inserts them
-  in front of the previous value at the insertion index.
+  Pulls out either a single element (denoted by an integer index) or a contiguous range of
+  the list (given by a range) and inserts it in front of the value previously at the insertion
+  index.
 
+    # Rotate a single element
+    iex> XUtil.List.rotate([0, 1, 2, 3, 4, 5, 6], 5, 1)
+    [0, 5, 1, 2, 3, 4, 6]
+    iex> XUtil.List.rotate([0, 1, 2, 3, 4, 5, 6], 2, 4)
+    [0, 1, 3, 4, 2, 5, 6]
+
+    # Rotate a range of elements backward
     iex> XUtil.List.rotate([0, 1, 2, 3, 4, 5, 6], 3..5, 1)
     [0, 3, 4, 5, 1, 2, 6]
     iex> XUtil.List.rotate([0, 1, 2, 3, 4, 5, 6], 1..7, 0)
     [1, 2, 3, 4, 5, 6, 0]
 
+    # Rotate a range of elements forward
     iex> XUtil.List.rotate([0, 1, 2, 3, 4, 5, 6], 1..3, 5)
     [0, 4, 5, 1, 2, 3, 6]
     iex> XUtil.List.rotate([0, 1, 2, 3, 4, 5, 6], 2..4, 1)
     [0, 2, 3, 4, 1, 5, 6]
   """
-  def rotate(%Range{} = enumerable, range, insertion_index) do
-    rotate(Enum.to_list(enumerable), range, insertion_index)
+  def rotate(list, range_or_single_index, insertion_index)
+
+  def rotate(%Range{} = enumerable, range_or_single_index, insertion_index) do
+    rotate(Enum.to_list(enumerable), range_or_single_index, insertion_index)
+  end
+
+  def rotate(enumerable, single_index, insertion_index) when is_integer(single_index) do
+    rotate(enumerable, single_index..single_index, insertion_index)
   end
 
   # TODO: Support negative indices/ranges
@@ -41,18 +56,6 @@ defmodule XUtil.List do
   def rotate(_, %Range{first: first, last: last}, insertion_index) do
     raise "Insertion index for rotate must be outside the range being moved " <>
           "(tried to insert #{first}..#{last} at #{insertion_index})"
-  end
-
-  @doc """
-  Moves a single element from its current index to a target index.
-
-    iex> XUtil.List.rotate_one([0, 1, 2, 3, 4, 5, 6], 5, 1)
-    [0, 5, 1, 2, 3, 4, 6]
-    iex> XUtil.List.rotate_one([0, 1, 2, 3, 4, 5, 6], 2, 4)
-    [0, 1, 3, 4, 2, 5, 6]
-  """
-  def rotate_one(enumerable, idx_to_move, insertion_idx) do
-    rotate(enumerable, idx_to_move..idx_to_move, insertion_idx)
   end
 
   # If end is after middle, we can use a non-tail recursive to start traverse until we find the start:
