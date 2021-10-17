@@ -39,9 +39,10 @@ defmodule XUtil.List do
   # TODO: Support negative indices/ranges
   # TODO: Make it clear the semantics of the range are based on the semantics of Enum.slice/2
   #       and the semantics of "end" on insert_at
+  #       TODO: Make it clear what this means for  indices outside the range
   # TODO: Support ranges with a :step (1.12+)? Enum.slice/2 raises an error, so maybe not
   def rotate(enumerable, first..last, insertion_index)
-      when insertion_index < first or insertion_index > last do
+      when first <= last and (insertion_index < first or insertion_index > last) do
     cond do
       insertion_index <= first -> find_start(enumerable, insertion_index, first, last)
       insertion_index > last -> find_start(enumerable, first, last + 1, insertion_index)
@@ -53,9 +54,13 @@ defmodule XUtil.List do
     Enum.to_list(enumerable)
   end
 
+  def rotate(enumerable, last..first, insertion_index) when last > first do
+    rotate(enumerable, first..last, insertion_index)
+  end
+
   def rotate(_, %Range{first: first, last: last}, insertion_index) do
     raise "Insertion index for rotate must be outside the range being moved " <>
-          "(tried to insert #{first}..#{last} at #{insertion_index})"
+            "(tried to insert #{first}..#{last} at #{insertion_index})"
   end
 
   # If end is after middle, we can use a non-tail recursive to start traverse until we find the start:

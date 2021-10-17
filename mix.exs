@@ -20,9 +20,10 @@ defmodule XUtil.MixProject do
 
   defp deps do
     [
-      {:comb, git: "https://github.com/tallakt/comb.git", tag: "master"},
       {:assertions, "~> 0.10", only: :test},
-      {:credo, "~> 1.5.1", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.5.1", only: [:dev, :test], runtime: false},
+      {:comb, git: "https://github.com/tallakt/comb.git", tag: "master"},
+      {:stream_data, "~> 0.5", only: [:test]}
     ]
   end
 end
