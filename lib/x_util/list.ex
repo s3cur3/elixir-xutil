@@ -8,6 +8,18 @@ defmodule XUtil.List do
   the list (given by a range) and inserts it in front of the value previously at the insertion
   index.
 
+  The semantics of the the range to be rotated match the semantics of Enum.slice/2. Specifically,
+  that means:
+
+  - Indexes are normalized, meaning that negative indexes will be counted from the end
+      (for example, -1 means the last element of the enumerable).
+  - If the normalized index range's `last` is out of bounds, the range is truncated to the last element.
+  - If the normalized index_range's `first` is out of bounds, the selected range for rotation
+      will be empty, so you'll get back your input list.
+  - Decreasing ranges (e.g., the range 5..0) also select an empty range to be rotated, so you'll
+      get back your input list.
+  - Ranges with a custom step (anything but 1 or -1) will raise an error.
+
     # Rotate a single element
     iex> XUtil.List.rotate([0, 1, 2, 3, 4, 5, 6], 5, 1)
     [0, 5, 1, 2, 3, 4, 6]
@@ -36,12 +48,23 @@ defmodule XUtil.List do
     rotate(enumerable, single_index..single_index, insertion_index)
   end
 
-  # TODO: Support negative indices/ranges
-  # TODO: Make it clear the semantics of the range are based on the semantics of Enum.slice/2
-  #       and the semantics of "end" on insert_at
-  #       TODO: Make it clear what this means for  indices outside the range
-  # TODO: Support ranges with a :step (1.12+)? Enum.slice/2 raises an error, so maybe not
-  def rotate(enumerable, first..last, insertion_index)
+  # Normalize negative input ranges like Enum.slice/2
+  def rotate(enumerable, first..last//step, insertion_index)
+      when (first < 0 or last < 0) and (step == 1 or step == -1) do
+    count = length(enumerable)
+    normalized_first = if first >= 0, do: first, else: first + count
+    normalized_last = if last >= 0, do: last, else: last + count
+    normalized_step = if normalized_first <= normalized_last, do: 1, else: -1
+
+    if normalized_first >= 0 and normalized_first < count do
+      normalized_range = normalized_first..normalized_last//normalized_step
+      rotate(enumerable, normalized_range, insertion_index)
+    else
+      Enum.to_list(enumerable)
+    end
+  end
+
+  def rotate(enumerable, first..last//1, insertion_index)
       when first <= last and (insertion_index < first or insertion_index > last) do
     cond do
       insertion_index <= first -> find_start(enumerable, insertion_index, first, last)
@@ -54,8 +77,16 @@ defmodule XUtil.List do
     Enum.to_list(enumerable)
   end
 
-  def rotate(enumerable, last..first, insertion_index) when last > first do
-    rotate(enumerable, first..last, insertion_index)
+  # This matches the behavior of Enum.slice/2 when given "reversed" ranges, which is to consider
+  # the slice entirely empty.
+  def rotate(enumerable, %Range{step: step}, _insertion_index) when step == -1 do
+    Enum.to_list(enumerable)
+  end
+
+  # This matches the behavior of Enum.slice/2
+  def rotate(_enumerable, %Range{step: step} = index_range, _insertion_index) when step > 1 do
+    raise ArgumentError,
+          "List.rotate/3 does not accept ranges with custom steps, got: #{inspect(index_range)}"
   end
 
   def rotate(_, %Range{first: first, last: last}, insertion_index) do

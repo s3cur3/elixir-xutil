@@ -28,23 +28,35 @@ defmodule XUtil.ListTest do
       assert XUtil.List.rotate([:a, :b, :c, :d, :e, :f], 3..4, 2) == [:a, :b, :d, :e, :c, :f]
     end
 
-    test "handles reversed ranges" do
-      expected_numbers = Enum.flat_map([0..7, 14..18, 8..13, 19..20], &Enum.to_list/1)
-      assert XUtil.List.rotate(0..20, 18..14, 8) == expected_numbers
-
-      assert XUtil.List.rotate([:a, :b, :c, :d, :e, :f], 4..3, 2) == [:a, :b, :d, :e, :c, :f]
-    end
-
-    property "handles reversed ranges" do
+    property "accepts reversed ranges, but treats them as empty like Enum.slice/2" do
       check all(
               list <- StreamData.list_of(StreamData.integer(), max_length: 100),
               {range, insertion_point} <- rotation_spec(list)
             ) do
-        reversed_range = %Range{first: range.last, last: range.first}
-
-        assert XUtil.List.rotate(list, range, insertion_point) ==
-                 XUtil.List.rotate(list, reversed_range, insertion_point)
+        # If the ranges are *equal*, there's no such thing as a reversed version of the range
+        if range.last != range.first do
+          reversed_range = %Range{first: range.last, last: range.first, step: -1}
+          assert XUtil.List.rotate(list, reversed_range, insertion_point) == list
+        end
       end
+    end
+
+    property "handles negative indices" do
+      check all(
+              list <- StreamData.list_of(StreamData.integer(), max_length: 100),
+              {range, insertion_point} <- rotation_spec(list)
+            ) do
+        length = length(list)
+        negative_range = %Range{first: range.first - length, last: range.last - length, step: 1}
+        assert XUtil.List.rotate(list, negative_range, insertion_point) ==
+                 XUtil.List.rotate(list, range, insertion_point)
+      end
+    end
+
+    test "handles mixed positive and negative indices" do
+      assert XUtil.List.rotate(0..20, -6..-1, 8) == XUtil.List.rotate(0..20, 15..20, 8)
+      assert XUtil.List.rotate(0..20, 15..-1, 8) == XUtil.List.rotate(0..20, 15..20, 8)
+      assert XUtil.List.rotate(0..20, -6..20, 8) == XUtil.List.rotate(0..20, 15..20, 8)
     end
 
     test "doesn't change the list when the first and middle indices match" do
@@ -63,6 +75,15 @@ defmodule XUtil.ListTest do
       assert_raise RuntimeError, fn ->
         XUtil.List.rotate(0..20, 10..18, 14)
       end
+    end
+
+    test "accepts range starts that are off the end of the list, returning the input list" do
+      assert XUtil.List.rotate([], 1..5, 0) == []
+      assert XUtil.List.rotate(0..20, 21..25, 3) == Enum.to_list(0..20)
+    end
+
+    test "accepts range ends that are off the end of the list, truncating the rotated range" do
+      assert XUtil.List.rotate(0..10, 8..15, 4) == assert XUtil.List.rotate(0..10, 8..10, 4)
     end
   end
 
