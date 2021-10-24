@@ -28,19 +28,6 @@ defmodule XUtil.ListTest do
       assert XUtil.List.rotate([:a, :b, :c, :d, :e, :f], 3..4, 2) == [:a, :b, :d, :e, :c, :f]
     end
 
-    property "accepts reversed ranges, but treats them as empty like Enum.slice/2" do
-      check all(
-              list <- StreamData.list_of(StreamData.integer(), max_length: 100),
-              {range, insertion_point} <- rotation_spec(list)
-            ) do
-        # If the ranges are *equal*, there's no such thing as a reversed version of the range
-        if range.last != range.first do
-          reversed_range = %Range{first: range.last, last: range.first, step: -1}
-          assert XUtil.List.rotate(list, reversed_range, insertion_point) == list
-        end
-      end
-    end
-
     property "handles negative indices" do
       check all(
               list <- StreamData.list_of(StreamData.integer(), max_length: 100),
@@ -55,8 +42,18 @@ defmodule XUtil.ListTest do
 
     test "handles mixed positive and negative indices" do
       assert XUtil.List.rotate(0..20, -6..-1, 8) == XUtil.List.rotate(0..20, 15..20, 8)
-      assert XUtil.List.rotate(0..20, 15..-1, 8) == XUtil.List.rotate(0..20, 15..20, 8)
+      assert XUtil.List.rotate(0..20, 15..-1//1, 8) == XUtil.List.rotate(0..20, 15..20, 8)
       assert XUtil.List.rotate(0..20, -6..20, 8) == XUtil.List.rotate(0..20, 15..20, 8)
+    end
+
+    test "raises an error when the step is not exactly 1" do
+      rotation_ranges_that_should_fail = [2..10//2, 8..-1, 10..2//-1, 10..4//-2, -1..-8//-1]
+
+      Enum.each(rotation_ranges_that_should_fail, fn range_that_should_fail ->
+        assert_raise(ArgumentError, fn ->
+          XUtil.List.rotate(0..20, range_that_should_fail, 1)
+        end)
+      end)
     end
 
     test "doesn't change the list when the first and middle indices match" do
