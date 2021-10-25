@@ -116,19 +116,37 @@ defmodule XUtil.Enum do
     end
   end
 
-  # Takes the range from middle..last and moves it to index first
+  # Takes the range from middle..last and moves it to be in front of index first
   defp rotate_any(enumerable, start, middle, last) do
-    {:done, {_size, head, rotate_back, rotate_forward, tail}} =
-      Enumerable.reduce(enumerable, {:cont, {0, [], [], [], []}}, fn item, {index, chunk_1, chunk_2, chunk_3, tail} ->
-        cond do
-          index < start -> {:cont, {index + 1, [item | chunk_1], chunk_2, chunk_3, tail}}
-          index >= start and index < middle -> {:cont, {index + 1, chunk_1, [item | chunk_2], chunk_3, tail}}
-          index >= middle and index <= last -> {:cont, {index + 1, chunk_1, chunk_2, [item | chunk_3], tail}}
-          true -> {:cont, {index + 1, chunk_1, chunk_2, chunk_3, [item | tail]}}
-        end
+    # We're going to divide the enumerable into 4 "chunks":
+    # 0. Before the start index
+    # 1. Between start (inclusive) and middle (exclusive)
+    # 2. Between middle (inclusive) and last (inclusive)
+    # 3. After last
+    # ...then at the end, we're going to reassemble them, swapping the order of the middle two.
+    starting_chunks = Map.new(for i <- 0..3, do: {i, []})
+
+    {:done, {_size, %{0 => head, 1 => rotate_back, 2 => rotate_forward, 3 => tail}}} =
+      Enumerable.reduce(enumerable, {:cont, {0, starting_chunks}}, fn item, {index, chunks} ->
+        chunk_index = select_chunk(index, start, middle, last)
+
+        {_, updated_chunks} = Map.get_and_update!(chunks, chunk_index, fn chunk ->
+          {chunk, [item | chunk]}
+        end)
+
+        {:cont, {index + 1, updated_chunks}}
       end)
 
     :lists.reverse(head, :lists.reverse(rotate_forward, :lists.reverse(rotate_back, :lists.reverse(tail))))
+  end
+
+  defp select_chunk(index, start, middle, last) do
+    cond do
+      index < start -> 0
+      index >= start and index < middle -> 1
+      index >= middle and index <= last -> 2
+      true -> 3
+    end
   end
 
   # If end is after middle, we can use a non-tail recursive to start traverse until we find the start:
