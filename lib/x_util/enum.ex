@@ -76,10 +76,6 @@ defmodule XUtil.Enum do
     rotate(enumerable, single_index..single_index, insertion_index)
   end
 
-  def rotate(enumerable, %Range{first: insertion_index}, insertion_index) do
-    Enum.to_list(enumerable)
-  end
-
   # This matches the behavior of Enum.slice/2
   def rotate(_, %Range{step: step} = index_range, _insertion_index) when step != 1 do
     raise ArgumentError,
@@ -98,6 +94,10 @@ defmodule XUtil.Enum do
     else
       Enum.to_list(enumerable)
     end
+  end
+
+  def rotate(enumerable, %Range{first: insertion_index}, insertion_index) do
+    Enum.to_list(enumerable)
   end
 
   def rotate(_, first..last, insertion_index)
