@@ -130,9 +130,10 @@ defmodule XUtil.Enum do
       Enumerable.reduce(enumerable, {:cont, {0, starting_chunks}}, fn item, {index, chunks} ->
         chunk_index = select_chunk(index, start, middle, last)
 
-        {_, updated_chunks} = Map.get_and_update!(chunks, chunk_index, fn chunk ->
-          {chunk, [item | chunk]}
-        end)
+        {_, updated_chunks} =
+          Map.get_and_update!(chunks, chunk_index, fn chunk ->
+            {chunk, [item | chunk]}
+          end)
 
         {:cont, {index + 1, updated_chunks}}
       end)
