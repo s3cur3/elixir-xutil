@@ -126,8 +126,8 @@ defmodule XUtil.Enum do
     # ...then at the end, we're going to reassemble them, swapping the order of the middle two.
     starting_chunks = Map.new(for i <- 0..3, do: {i, []})
 
-    {:done, {_size, %{0 => head, 1 => rotate_back, 2 => rotate_forward, 3 => tail}}} =
-      Enumerable.reduce(enumerable, {:cont, {0, starting_chunks}}, fn item, {index, chunks} ->
+    {_size, %{0 => head, 1 => rotate_back, 2 => rotate_forward, 3 => tail}} =
+      Enum.reduce(enumerable, {0, starting_chunks}, fn item, {index, chunks} ->
         chunk_index = select_chunk(index, start, middle, last)
 
         {_, updated_chunks} =
@@ -135,7 +135,7 @@ defmodule XUtil.Enum do
             {chunk, [item | chunk]}
           end)
 
-        {:cont, {index + 1, updated_chunks}}
+        {index + 1, updated_chunks}
       end)
 
     :lists.reverse(head, :lists.reverse(rotate_forward, :lists.reverse(rotate_back, :lists.reverse(tail))))
