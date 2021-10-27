@@ -40,7 +40,7 @@ defmodule XUtil.EnumTest do
               {range, insertion_point} <- rotation_spec(list)
             ) do
         length = length(list)
-        negative_range = %Range{first: range.first - length, last: range.last - length, step: 1}
+        negative_range = (range.first - length)..(range.last - length)//1
 
         assert XUtil.Enum.rotate(list, negative_range, insertion_point) ==
                  XUtil.Enum.rotate(list, range, insertion_point)

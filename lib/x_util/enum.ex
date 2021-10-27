@@ -77,7 +77,7 @@ defmodule XUtil.Enum do
   end
 
   # This matches the behavior of Enum.slice/2
-  def rotate(_, %Range{step: step} = index_range, _insertion_index) when step != 1 do
+  def rotate(_, _.._//step = index_range, _insertion_index) when step != 1 do
     raise ArgumentError,
           "Enum.rotate/3 does not accept ranges with custom steps, got: #{inspect(index_range)}"
   end
@@ -96,7 +96,7 @@ defmodule XUtil.Enum do
     end
   end
 
-  def rotate(enumerable, %Range{first: insertion_index}, insertion_index) do
+  def rotate(enumerable, insertion_index.._, insertion_index) do
     Enum.to_list(enumerable)
   end
 
