@@ -118,36 +118,32 @@ defmodule XUtil.Enum do
 
   # Takes the range from middle..last and moves it to be in front of index first
   defp rotate_any(enumerable, start, middle, last) do
-    # We're going to divide the enumerable into 4 "chunks":
-    # 0. Before the start index
-    # 1. Between start (inclusive) and middle (exclusive)
-    # 2. Between middle (inclusive) and last (inclusive)
-    # 3. After last
-    # ...then at the end, we're going to reassemble them, swapping the order of the middle two.
-    starting_chunks = Map.new(for i <- 0..3, do: {i, []})
+    # We're going to deal with 4 "chunks" of the enumerable:
+    # 0. "Head," before the start index
+    # 1. "Rotate back," between start (inclusive) and middle (exclusive)
+    # 2. "Rotate front," between middle (inclusive) and last (inclusive)
+    # 3. "Tail," after last
+    #
+    # But, we're going to accumulate these into only two lists: pre and post.
+    # We'll reverse-accumulate the head into our pre list, then "rotate back" into post,
+    # then "rotate front" into pre, then "tail" into post.
+    #
+    # Then at the end, we're going to reassemble and reverse them, and end up with the
+    # chunks in the correct order.
+    {_size, pre, post} =
+      Enum.reduce(enumerable, {0, [], []}, fn item, {index, pre, post} ->
+        {pre, post} =
+          cond do
+            index < start -> {[item | pre], post}
+            index >= start and index < middle -> {pre, [item | post]}
+            index >= middle and index <= last -> {[item | pre], post}
+            true -> {pre, [item | post]}
+          end
 
-    {_size, %{0 => head, 1 => rotate_back, 2 => rotate_forward, 3 => tail}} =
-      Enum.reduce(enumerable, {0, starting_chunks}, fn item, {index, chunks} ->
-        chunk_index = select_chunk(index, start, middle, last)
-
-        {_, updated_chunks} =
-          Map.get_and_update!(chunks, chunk_index, fn chunk ->
-            {chunk, [item | chunk]}
-          end)
-
-        {index + 1, updated_chunks}
+        {index + 1, pre, post}
       end)
 
-    :lists.reverse(head, :lists.reverse(rotate_forward, :lists.reverse(rotate_back, :lists.reverse(tail))))
-  end
-
-  defp select_chunk(index, start, middle, last) do
-    cond do
-      index < start -> 0
-      index >= start and index < middle -> 1
-      index >= middle and index <= last -> 2
-      true -> 3
-    end
+    :lists.reverse(pre, :lists.reverse(post))
   end
 
   # If end is after middle, we can use a non-tail recursive to start traverse until we find the start:
